@@ -31,23 +31,28 @@ int retryDelay = 20000;
 
 // Forward declarations
 void updateWiFiLED();
-void writeLog(const String& msg);
+void writeLog(const String &msg);
 
 // ======================================================
 // LED WIFI STATUS
 // ======================================================
-void updateWiFiLED() {
-  if (WiFi.status() == WL_CONNECTED) {
-    digitalWrite(LED_PIN, LOW);   // ON (active LOW)
-  } else {
-    digitalWrite(LED_PIN, HIGH);  // OFF
+void updateWiFiLED()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    digitalWrite(LED_PIN, LOW); // ON (active LOW)
+  }
+  else
+  {
+    digitalWrite(LED_PIN, HIGH); // OFF
   }
 }
 
 // ======================================================
 // SEND LOG VIA WS
 // ======================================================
-void sendLog(const String& msg) {
+void sendLog(const String &msg)
+{
   size_t len = msg.length() + 30;
   char jsonBuffer[len];
   snprintf(jsonBuffer, sizeof(jsonBuffer), "{\"log\":\"%s\"}", msg.c_str());
@@ -57,15 +62,19 @@ void sendLog(const String& msg) {
 // ======================================================
 // WRITE LOG FILE (Dibatasi maks ~10KB agar memori aman)
 // ======================================================
-void writeLog(const String& msg) {
+void writeLog(const String &msg)
+{
   File file = LittleFS.open("/log.txt", "a");
-  if (!file) return;
+  if (!file)
+    return;
 
   // Jika ukuran file melebihi 10KB, bersihkan dan mulai baru
-  if (file.size() > 10240) {
+  if (file.size() > 10240)
+  {
     file.close();
     file = LittleFS.open("/log.txt", "w"); // Mode "w" langsung menimpa/mengosongkan file
-    if (!file) return;
+    if (!file)
+      return;
   }
 
   String line = String(millis()) + " | " + msg;
@@ -80,23 +89,28 @@ void writeLog(const String& msg) {
 // ======================================================
 // HISTORY LOG (Hanya mengirim 15 baris terakhir agar ringan)
 // ======================================================
-void sendLogHistory(uint8_t client) {
+void sendLogHistory(uint8_t client)
+{
   File file = LittleFS.open("/log.txt", "r");
-  if (!file) return;
+  if (!file)
+    return;
 
   // Tampung baris-baris log untuk mengambil max 15 baris terakhir
   String lines[15];
   int totalLines = 0;
 
-  while (file.available()) {
+  while (file.available())
+  {
     String line = file.readStringUntil('\n');
     line.trim();
-    if (line.length() == 0) continue;
+    if (line.length() == 0)
+      continue;
 
     lines[totalLines % 15] = line;
     totalLines++;
 
-    if (totalLines % 10 == 0) {
+    if (totalLines % 10 == 0)
+    {
       yield();
     }
   }
@@ -104,14 +118,17 @@ void sendLogHistory(uint8_t client) {
 
   int startIdx = 0;
   int numLinesToSend = totalLines;
-  if (totalLines > 15) {
+  if (totalLines > 15)
+  {
     startIdx = totalLines % 15;
     numLinesToSend = 15;
   }
 
-  for (int i = 0; i < numLinesToSend; i++) {
+  for (int i = 0; i < numLinesToSend; i++)
+  {
     int idx = (startIdx + i) % 15;
-    if (lines[idx].length() > 0) {
+    if (lines[idx].length() > 0)
+    {
       size_t len = lines[idx].length() + 30;
       char jsonBuffer[len];
       snprintf(jsonBuffer, sizeof(jsonBuffer), "{\"log\":\"%s\"}", lines[idx].c_str());
@@ -124,9 +141,11 @@ void sendLogHistory(uint8_t client) {
 // ======================================================
 // WEB HANDLERS
 // ======================================================
-void handleRoot() {
+void handleRoot()
+{
   File file = LittleFS.open("/index.html", "r");
-  if (!file) {
+  if (!file)
+  {
     server.send(404, "text/plain", "NO INDEX");
     return;
   }
@@ -134,27 +153,31 @@ void handleRoot() {
   file.close();
 }
 
-void handlePress() {
+void handlePress()
+{
   digitalWrite(POWER_PIN, HIGH);
   writeLog("ACTION: Button pressed");
   server.send(200, "text/plain", "OK: Pressed");
 }
 
-void handleRelease() {
+void handleRelease()
+{
   digitalWrite(POWER_PIN, LOW);
   writeLog("ACTION: Button released");
   server.send(200, "text/plain", "OK: Released");
 }
 
-void handleStatus() {
+void handleStatus()
+{
   server.send(200, "application/json",
-              lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}"
-             );
+              lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}");
 }
 
-void handleLog() {
+void handleLog()
+{
   File file = LittleFS.open("/log.txt", "r");
-  if (!file) {
+  if (!file)
+  {
     server.send(404, "text/plain", "NO LOG");
     return;
   }
@@ -162,9 +185,11 @@ void handleLog() {
   file.close();
 }
 
-void handleClearLog() {
+void handleClearLog()
+{
   File f = LittleFS.open("/log.txt", "w");
-  if (f) {
+  if (f)
+  {
     f.close();
   }
 
@@ -176,12 +201,16 @@ void handleClearLog() {
 // ======================================================
 // WEBSOCKET EVENT
 // ======================================================
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
-  if (type == WStype_CONNECTED) {
-    const char* statusMsg = lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}";
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
+{
+  if (type == WStype_CONNECTED)
+  {
+    const char *statusMsg = lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}";
     webSocket.sendTXT(num, statusMsg);
 
-    writeLog("WS: Client " + String(num) + " connected");
+    // Ubah writeLog menjadi Serial.println agar tidak memenuhi file log.txt
+    Serial.printf("[%u] WS Connected\n", num);
+
     sendLogHistory(num);
   }
 }
@@ -189,7 +218,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 // ======================================================
 // WIFI CONNECT
 // ======================================================
-bool connectWiFi() {
+bool connectWiFi()
+{
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
@@ -199,13 +229,15 @@ bool connectWiFi() {
   WiFi.begin(ssid, password);
 
   int timeout = 0;
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
     timeout++;
     ESP.wdtFeed();
 
-    if (timeout > 30) {
+    if (timeout > 30)
+    {
       Serial.println("\nWIFI FAIL");
       updateWiFiLED();
       return false;
@@ -220,12 +252,15 @@ bool connectWiFi() {
 // ======================================================
 // WIFI MANAGER
 // ======================================================
-void wifiManager() {
-  if (WiFi.status() == WL_CONNECTED) {
+void wifiManager()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
     updateWiFiLED();
     retryDelay = 20000;
 
-    if (!wifiWasConnected) {
+    if (!wifiWasConnected)
+    {
       writeLog("WIFI RESTORED");
 
       webSocket.disconnect();
@@ -258,7 +293,8 @@ void wifiManager() {
 // ======================================================
 // SETUP
 // ======================================================
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(1000);
 
@@ -269,7 +305,8 @@ void setup() {
   digitalWrite(POWER_PIN, LOW);
   digitalWrite(LED_PIN, HIGH);
 
-  if (!LittleFS.begin()) {
+  if (!LittleFS.begin())
+  {
     Serial.println("LFS ERROR - Restarting...");
     ESP.restart();
   }
@@ -285,22 +322,23 @@ void setup() {
   server.on("/status", handleStatus);
   server.on("/clearlog", handleClearLog);
 
-  server.on("/favicon.ico", []() {
+  server.on("/favicon.ico", []()
+            {
     File file = LittleFS.open("/favicon.ico", "r");
     if (!file) {
       server.send(404, "text/plain", "NO ICON");
       return;
     }
     server.streamFile(file, "image/x-icon");
-    file.close();
-  });
+    file.close(); });
 
   server.begin();
 
   // WS
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  webSocket.enableHeartbeat(15000, 3000, 2);
+  // Diperlama: Check setiap 20 dtk, timeout 5 dtk, max fail 3x
+  webSocket.enableHeartbeat(20000, 5000, 3);
 
   connectWiFi();
   WiFi.setAutoReconnect(true);
@@ -309,7 +347,8 @@ void setup() {
 // ======================================================
 // LOOP
 // ======================================================
-void loop() {
+void loop()
+{
   ESP.wdtFeed();
 
   server.handleClient();
@@ -319,14 +358,15 @@ void loop() {
   bool currentStatus = digitalRead(STATUS_PIN) == LOW;
 
   if (currentStatus != lastStatus &&
-      millis() - lastChange > 200) {
+      millis() - lastChange > 200)
+  {
 
     lastChange = millis();
     lastStatus = currentStatus;
 
     writeLog(lastStatus ? "STATUS ON" : "STATUS OFF");
 
-    const char* statusMsg = lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}";
+    const char *statusMsg = lastStatus ? "{\"status\":\"ON\"}" : "{\"status\":\"OFF\"}";
     webSocket.broadcastTXT(statusMsg);
   }
 
