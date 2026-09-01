@@ -156,14 +156,14 @@ void handleRoot()
 void handlePress()
 {
   digitalWrite(POWER_PIN, HIGH);
-  writeLog("ACTION: Button pressed");
+  writeLog("ACTION: Button pressed (STATUS ON)");
   server.send(200, "text/plain", "OK: Pressed");
 }
 
 void handleRelease()
 {
   digitalWrite(POWER_PIN, LOW);
-  writeLog("ACTION: Button released");
+  writeLog("ACTION: Button released (STATUS OFF)");
   server.send(200, "text/plain", "OK: Released");
 }
 
