@@ -20,7 +20,62 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* --- LOGIN STYLES --- */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        #login-overlay h2 {
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        #pass-input {
+            padding: 12px;
+            font-size: 18px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+            width: 200px;
+            margin-bottom: 20px;
+        }
+
+        #pass-input:focus {
+            border-color: #ff4444;
+        }
+
+        #login-btn {
+            padding: 10px 30px;
+            background: #333;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #login-btn:active {
+            background: #444;
+            transform: scale(0.95);
+        }
+
+        /* -------------------- */
+
         body {
+
             background: #111;
             font-family: Arial;
             color: white;
@@ -156,7 +211,15 @@
 
 <body>
 
+    <!-- OVERLAY LOGIN -->
+    <div id="login-overlay">
+        <h2>SECURE ACCESS</h2>
+        <input type="password" id="pass-input" placeholder="Password">
+        <button id="login-btn" onclick="checkPassword()">LOGIN</button>
+    </div>
+
     <div class="left">
+
 
         <div class="title">POWER CONTROL</div>
 
@@ -187,8 +250,33 @@
     <script>
 
         let ws;
+        const MY_PASSWORD = "ayamjago"; // <--- GANTI PASSWORD DI SINI
+
+        function checkPassword() {
+            const input = document.getElementById("pass-input").value;
+            if (input === MY_PASSWORD) {
+                document.getElementById("login-overlay").style.display = "none";
+                sessionStorage.setItem("authed", "true");
+            } else {
+                alert("Password Salah!");
+                document.getElementById("pass-input").value = "";
+            }
+        }
+
+        // Cek jika sudah login sebelumnya dalam satu sesi browser
+        if (sessionStorage.getItem("authed") === "true") {
+            document.getElementById("login-overlay").style.display = "none";
+        }
+
+        // Jalankan check dengan tombol Enter
+        document.getElementById("pass-input").addEventListener("keyup", function (event) {
+            if (event.key === "Enter") {
+                checkPassword();
+            }
+        });
 
         // ================= BASE CONFIG =================
+
         const IS_HTTPS = location.protocol === "https:";
 
         const BASE_URL = IS_HTTPS
