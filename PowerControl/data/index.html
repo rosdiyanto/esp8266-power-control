@@ -116,11 +116,30 @@
             color: white;
             font-size: 30px;
             font-weight: bold;
+            margin: 10px;
         }
 
         .power-btn:active {
             transform: scale(0.92);
             background: radial-gradient(circle at top, #ff4444, #770000);
+        }
+
+        .release-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: radial-gradient(circle at top, #333, #000);
+            color: #aaa;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        .release-btn:active {
+            transform: scale(0.92);
+            background: radial-gradient(circle at top, #444, #222);
+            color: white;
         }
 
         .status {
@@ -223,11 +242,12 @@
 
         <div class="title">POWER CONTROL</div>
 
-        <button class="power-btn" onmousedown="pressButton()" onmouseup="releaseButton()" ontouchstart="pressButton()"
-            ontouchend="releaseButton()">
-
-            POWER
-        </button>
+        <div class="btn-container" style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <button class="power-btn" id="toggle-btn" onclick="toggleBtn()"
+                style="background: radial-gradient(circle at top, #333, #000);">
+                POWER
+            </button>
+        </div>
 
         <div class="status">
             <div class="dot" id="dot"></div>
@@ -362,12 +382,28 @@
         }
 
         // ================= BUTTON =================
-        function pressButton() {
-            fetch(BASE_URL + '/press');
-        }
+        let isToggled = localStorage.getItem("isToggled") === "true";
 
-        function releaseButton() {
-            fetch(BASE_URL + '/release');
+        // Pastikan tampilan sesuai state saat dimuat
+        document.addEventListener("DOMContentLoaded", () => {
+            const btn = document.getElementById("toggle-btn");
+            if (isToggled) {
+                btn.style.background = "radial-gradient(circle at top, #ff9900, #995500)";
+            }
+        });
+
+        function toggleBtn() {
+            isToggled = !isToggled;
+            localStorage.setItem("isToggled", isToggled);
+
+            const btn = document.getElementById("toggle-btn");
+            if (isToggled) {
+                fetch(BASE_URL + '/press');
+                btn.style.background = "radial-gradient(circle at top, #ff9900, #995500)";
+            } else {
+                fetch(BASE_URL + '/release');
+                btn.style.background = "radial-gradient(circle at top, #333, #000)";
+            }
         }
 
         function clearLog() {
