@@ -275,7 +275,14 @@ void wifiManager()
     return;
   }
 
-  wifiWasConnected = false;
+  // Jika WiFi mati, pastikan socket dibersihkan jika sebelumnya terkoneksi
+  if (wifiWasConnected)
+  {
+    writeLog("WIFI LOST - Cleaning up Socket");
+    webSocket.disconnect();
+    wifiWasConnected = false;
+  }
+
   updateWiFiLED();
 
   if (millis() - lastReconnectAttempt < retryDelay)
@@ -350,6 +357,13 @@ void setup()
 void loop()
 {
   ESP.wdtFeed();
+
+  // Restart otomatis setiap 24 jam (86,400,000 ms)
+  if (millis() > 86400000)
+  {
+    writeLog("DAILY RESTART");
+    ESP.restart();
+  }
 
   server.handleClient();
   webSocket.loop();
