@@ -160,6 +160,14 @@ Server WebSocket berjalan di port `81`.
     {"clear":true}
     ```
 
+## Reverse Proxy (Opsional)
+
+Jika Anda ingin mengakses perangkat dari luar jaringan atau menggunakan domain, Anda dapat menggunakan Nginx sebagai reverse proxy.
+
+**Catatan Penting:** 
+- Pastikan **Proxy DNS** (seperti Cloudflare Proxy) dimatikan (Set to **DNS Only**) agar koneksi WebSocket tidak terganggu.
+- Silakan lihat contoh konfigurasi Nginx pada [config_nginx.txt](config_nginx.txt).
+
 ## Lisensi
 
 Proyek ini dilisensikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk detailnya.

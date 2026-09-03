@@ -75,7 +75,6 @@
         /* -------------------- */
 
         body {
-
             background: #111;
             font-family: Arial;
             color: white;
@@ -239,7 +238,6 @@
 
     <div class="left">
 
-
         <div class="title">POWER CONTROL</div>
 
         <div class="btn-container" style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -269,7 +267,6 @@
 
     <script>
 
-        let ws;
         const MY_PASSWORD = "ayamjago"; // <--- GANTI PASSWORD DI SINI
 
         function checkPassword() {
@@ -331,53 +328,78 @@
                     });
 
                     box.scrollTop = box.scrollHeight;
-                });
+                })
+                .catch(err => console.warn("Load log error:", err));
         }
 
-        // ================= WS =================
+        // ================= WS (OPTIMIZED) =================
+        let ws = null;
+        let reconnectTimer = null;
+
         function connectWS() {
+            // Cegah membuat koneksi ganda jika sedang connecting atau sudah open
+            if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+                return;
+            }
 
             ws = new WebSocket(WS_URL);
 
             ws.onopen = () => {
                 addLog("WEBSOCKET CONNECTED");
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
             };
 
             ws.onmessage = (event) => {
+                try {
+                    let data = JSON.parse(event.data);
 
-                let data = JSON.parse(event.data);
+                    if (data.status) {
+                        document.getElementById("status").innerText = data.status;
 
-                if (data.status) {
+                        let dot = document.getElementById("dot");
 
-                    document.getElementById("status").innerText = data.status;
-
-                    let dot = document.getElementById("dot");
-
-                    if (data.status === "ON") {
-                        dot.style.background = "lime";
-                        dot.style.boxShadow = "0 0 15px lime";
-                    } else {
-                        dot.style.background = "red";
-                        dot.style.boxShadow = "0 0 15px red";
+                        if (data.status === "ON") {
+                            dot.style.background = "lime";
+                            dot.style.boxShadow = "0 0 15px lime";
+                        } else {
+                            dot.style.background = "red";
+                            dot.style.boxShadow = "0 0 15px red";
+                        }
                     }
-                }
 
-                if (data.log) {
-                    addLog(data.log);
-                }
+                    if (data.log) {
+                        addLog(data.log);
+                    }
 
-                if (data.clear) {
-                    document.getElementById("log").innerHTML = "";
+                    if (data.clear) {
+                        document.getElementById("log").innerHTML = "";
+                    }
+                } catch (err) {
+                    console.error("JSON Parsing Error:", err);
                 }
             };
 
-            ws.onclose = () => {
-                addLog("WEBSOCKET DISCONNECTED");
-                setTimeout(connectWS, 2000);
+            ws.onclose = (event) => {
+                if (event.wasClean) {
+                    addLog("WEBSOCKET CLOSED CLEANLY");
+                } else {
+                    addLog("WEBSOCKET DISCONNECTED");
+                }
+
+                // Coba reconnect setiap 3 detik tanpa menumpuk interval
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(() => {
+                        reconnectTimer = null;
+                        connectWS();
+                    }, 3000);
+                }
             };
 
-            ws.onerror = () => {
-                addLog("WEBSOCKET ERROR");
+            ws.onerror = (error) => {
+                console.warn("WebSocket Event Warning:", error);
             };
         }
 
@@ -398,10 +420,10 @@
 
             const btn = document.getElementById("toggle-btn");
             if (isToggled) {
-                fetch(BASE_URL + '/press');
+                fetch(BASE_URL + '/press').catch(err => console.error("Press error:", err));
                 btn.style.background = "radial-gradient(circle at top, #ff9900, #995500)";
             } else {
-                fetch(BASE_URL + '/release');
+                fetch(BASE_URL + '/release').catch(err => console.error("Release error:", err));
                 btn.style.background = "radial-gradient(circle at top, #333, #000)";
             }
         }
@@ -410,7 +432,8 @@
             fetch(BASE_URL + '/clearlog', { method: 'POST' })
                 .then(() => {
                     document.getElementById("log").innerHTML = "";
-                });
+                })
+                .catch(err => console.error("Clear log error:", err));
         }
 
         // ================= INIT =================
